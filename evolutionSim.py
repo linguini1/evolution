@@ -2,6 +2,7 @@
 
 import random
 import csv
+from matplotlib import pyplot as plt
 
 # Starting information
 repChance = 30
@@ -13,6 +14,7 @@ time_steps = 31
 # -----------------------------
 creatures_buffer = []
 creatures = []
+data = [[], [], [], [], [], []]
 average_rep = 0
 average_death = 0
 average_mut = 0
@@ -28,7 +30,7 @@ print("Number of time steps: 30")
 print()
 
 
-# Getting valid input function
+# Getting valid input
 def get_data(message):
     while True:
         try:
@@ -49,6 +51,34 @@ while True:
         time_steps = get_data("Number of time steps: ") + 1
         break
     elif set_info.lower() == "no" or set_info.lower() == "n":
+        break
+    else:
+        print("Invalid input.")
+
+# Asking for export to CSV
+while True:
+    csv_exp = input("Do you want to export data to a CSV? (y/n): ")
+    if csv_exp.lower() == 'yes' or csv_exp.lower() == 'y':
+        csv_exp = True
+        file = open("evolution.csv", 'w')
+        headers = ["Time Step", "Population", "Deaths", "Average Reproduction", "Average Death", "Average Mutation"]
+        writer = csv.DictWriter(file, fieldnames=headers)
+        writer.writeheader()
+        break
+    elif csv_exp.lower() == 'no' or csv_exp.lower() == 'n':
+        csv_exp = False
+        break
+    else:
+        print("Invalid input.")
+
+# Asking for console printing
+while True:
+    cons_out = input("Do you want to print data to console? (y/n): ")
+    if cons_out.lower() == 'yes' or cons_out.lower() == 'y':
+        cons_out = True
+        break
+    elif cons_out.lower() == 'no' or cons_out.lower() == 'n':
+        cons_out = False
         break
     else:
         print("Invalid input.")
@@ -118,12 +148,6 @@ class Creature:
         self.mutate(chance)
 
 
-# Setting up CSV information
-file = open("evolution.csv", 'w')
-headers = ["Time Step", "Population", "Deaths", "Average Reproduction", "Average Death", "Average Mutation"]
-writer = csv.DictWriter(file, fieldnames=headers)
-writer.writeheader()
-
 # Populating with initial creature population
 for _ in range(initial_pop):
     creatures.append(Creature(repChance, deathChance, mutChance, mutAmount))
@@ -153,25 +177,67 @@ for time_step in range(1, time_steps):
 
     creatures_buffer = []
 
-    # Writing info to CSV
-    writer.writerow({"Time Step": time_step,
-                     "Population": Creature.population,
-                     "Deaths": Creature.deaths,
-                     "Average Reproduction": average_rep,
-                     "Average Death": average_death,
-                     "Average Mutation": average_mut})
+    # Writing to list
+    data[0].append(time_step)
+    data[1].append(Creature.population)
+    data[2].append(Creature.deaths)
+    data[3].append(average_rep)
+    data[4].append(average_death)
+    data[5].append(average_mut)
 
-    # Printing important info
-    print(f"Time Step: {time_step}")
-    print(f"Population: {Creature.population}")
-    print(f"Deaths: {Creature.deaths}")
-    print(f"Average reproduction stat: {average_rep}")
-    print(f"Average death stat: {average_death}")
-    print(f"Average mutation stat: {average_mut}")
-    print(f"Creatures in list: {len(creatures)}")
-    print("---------------------------------------------")
+    # Writing info to CSV
+    if csv_exp:
+        writer.writerow({"Time Step": time_step,
+                         "Population": Creature.population,
+                         "Deaths": Creature.deaths,
+                         "Average Reproduction": average_rep,
+                         "Average Death": average_death,
+                         "Average Mutation": average_mut})
+
+    # Printing to console
+    if counter % 2 == 0 and not cons_out:
+        print(f"{str(time_step / time_steps * 100)[0:2]}% complete.")
+
+    if cons_out:
+        print(f"Time Step: {time_step}")
+        print(f"Population: {Creature.population}")
+        print(f"Deaths: {Creature.deaths}")
+        print(f"Average reproduction stat: {average_rep}")
+        print(f"Average death stat: {average_death}")
+        print(f"Average mutation stat: {average_mut}")
+        print(f"Creatures in list: {len(creatures)}")
+        print("---------------------------------------------")
+
+    # Resetting values
     average_rep = 0
     average_death = 0
     average_mut = 0
     Creature.deaths = 0
     counter = 0
+
+# Closing CSV
+if csv_exp:
+    file.close()
+
+# Plotting data
+fig, axs = plt.subplots(2)
+plt.tight_layout()
+
+# Populations vs Deaths
+axs[0].set_title("Population vs Deaths")
+axs[0].plot(data[0], data[1], label='Population')
+axs[0].plot(data[0], data[2], label='Deaths')
+axs[0].set_xlabel("Time Step")
+axs[0].set_ylabel('# of Creatures')
+axs[0].legend()
+
+# Stat Change
+axs[1].set_title("Stat Changes")
+axs[1].plot(data[0], data[3], label='Reproduction')
+axs[1].plot(data[0], data[4], label='Death')
+axs[1].plot(data[0], data[5], label='Mutation')
+axs[1].set_xlabel("Time Step")
+axs[1].set_ylabel('Stat %')
+axs[1].legend()
+
+plt.show()
